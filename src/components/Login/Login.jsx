@@ -1,13 +1,20 @@
-import { GoogleAuthProvider, getAuth, signInWithPopup } from "firebase/auth";
+import {
+  GithubAuthProvider,
+  GoogleAuthProvider,
+  getAuth,
+  signInWithPopup,
+  signOut,
+} from "firebase/auth";
 import app from "../../firebase/firebase.init";
 import { useState } from "react";
 const Login = () => {
   const [user, setUser] = useState(null);
 
-  const auth = getAuth(app);
-  const provider = new GoogleAuthProvider();
+  const auth = getAuth();
+  const googleProvider = new GoogleAuthProvider();
+  const githubProvider = new GithubAuthProvider();
   const handleGoogleSignIn = () => {
-    signInWithPopup(auth, provider)
+    signInWithPopup(auth, googleProvider)
       .then((result) => {
         const loggedInUser = result.user;
         console.log(loggedInUser);
@@ -17,9 +24,54 @@ const Login = () => {
         console.log("error", error.message);
       });
   };
+
+  const handleGithubSignIn = () => {
+    signInWithPopup(auth, githubProvider)
+      .then((result) => {
+        const credential = GithubAuthProvider.credentialFromResult(result);
+        const token = credential.accessToken;
+        const user = result.user;
+        setUser(user);
+        console.log("github user: ", user);
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        const email = error.customData.email;
+        const credential = GithubAuthProvider.credentialFromError(error);
+        console.log(
+          "Error Code: ",
+          errorCode,
+          "errorMessage: ",
+          errorMessage,
+          "email: ",
+          email,
+          "credential: ",
+          credential
+        );
+      });
+  };
+
+  const handleSignOut = () => {
+    signOut(auth)
+      .then(() => {
+        setUser(null);
+        console.log("Sign Out Successfull", user);
+      })
+      .catch((error) => {
+        console.log(error.message);
+      });
+  };
   return (
     <div>
-      <button onClick={handleGoogleSignIn}>Google Login</button>
+      {user ? (
+        <button onClick={handleSignOut}>Sign Out</button>
+      ) : (
+        <>
+          <button onClick={handleGoogleSignIn}>Google Login</button>
+          <button onClick={handleGithubSignIn}>Github Login</button>
+        </>
+      )}
       {user && (
         <div>
           <h3>User: {user?.displayName}</h3>
@@ -27,7 +79,6 @@ const Login = () => {
           <img src={user?.photoURL} alt="" />
         </div>
       )}
-      <button onClick={handleGoogleSignIn}>Sign Out</button>
     </div>
   );
 };
